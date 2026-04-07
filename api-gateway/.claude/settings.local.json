@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean:*)",
+      "Bash(java -version)",
+      "Bash(mvn package:*)",
+      "Bash($MVN package:*)",
+      "Bash($MVN spring-boot:run:*)",
+      "Read(//c/dev/java/eureka-server/**)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2025.2.6.1/plugins/maven/lib/maven3/bin/mvn' spring-boot:run)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2025.2.6.1/plugins/maven/lib/maven3/bin/mvn' package -DskipTests)",
+      "Bash(bash start-dev.sh)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2025.2.6.1/plugins/maven/lib/maven3/bin/mvn' package -DskipTests -q)",
+      "Bash(curl:*)",
+      "Bash($MVN test:*)"
+    ]
+  }
+}

@@ -1,0 +1,78 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+
+        # ----------------------------------------------------------------
+        # Route 1 — PASSIVE (Internal Canary Testing)
+        # Matches only requests that carry the x-sgb-zone: passive header.
+        # MetadataAwareLoadBalancerFilter routes these exclusively to
+        # Eureka instances with deployment-state=passive.
+        # ----------------------------------------------------------------
+        - id: user-service-passive-testing
+          uri: lb://user-service
+          order: 1
+          predicates:
+            - Path=/users/**
+            - Header=x-sgb-zone, passive
+          metadata:
+            deployment-state: passive
+
+        # ----------------------------------------------------------------
+        # Route 2 — ACTIVE (Production Traffic)
+        # Catches all remaining /users/** traffic (no canary header).
+        # MetadataAwareLoadBalancerFilter routes these exclusively to
+        # Eureka instances with deployment-state=active (default when
+        # the metadata key is absent).
+        # ----------------------------------------------------------------
+        - id: user-service-active-live
+          uri: lb://user-service
+          order: 2
+          predicates:
+            - Path=/users/**
+          metadata:
+            deployment-state: active
+
+# -----------------------------------------------------------------------
+# Eureka
+# -----------------------------------------------------------------------
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    # Fetch the registry every 5 s so metadata promotions propagate quickly.
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    # Shorter heartbeat/expiry so stale instances are removed faster in dev.
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15
+
+# -----------------------------------------------------------------------
+# Actuator
+# -----------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,env
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+# -----------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------
+logging:
+  level:
+    com.example.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.loadbalancer: INFO
