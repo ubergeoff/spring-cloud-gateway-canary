@@ -145,37 +145,47 @@ class MetadataAwareServiceInstanceFilterTest {
     }
 
     // -------------------------------------------------------------------------
-    // Filtering — fallback paths
+    // Filtering — fallback / fail-fast paths
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("doFilter() — fallback behaviour")
+    @DisplayName("doFilter() — fallback and fail-fast behaviour")
     class FallbackBehaviour {
 
         @Test
-        @DisplayName("No passive node → fallback to active nodes (no black-holing)")
-        void noPassiveNode_fallsBackToActive() {
+        @DisplayName("Passive request, no passive nodes → returns empty (fail fast)")
+        void noPassiveNode_returnsEmpty() {
             List<ServiceInstance> instances = List.of(
                     instance("1", STATE_ACTIVE),
                     instance("2", STATE_ACTIVE));
 
             List<ServiceInstance> result = filter.doFilter(instances, STATE_PASSIVE);
 
-            // Must not return empty — falls back to active set.
-            assertThat(result).hasSize(2)
-                    .allMatch(i -> STATE_ACTIVE.equals(i.getMetadata().get(METADATA_KEY_DEPLOYMENT_STATE)));
+            assertThat(result).isEmpty();
         }
 
         @Test
-        @DisplayName("No active OR passive node → returns all instances")
-        void noActiveOrPassive_returnsAll() {
+        @DisplayName("Passive request, unknown deployment state → returns empty (fail fast)")
+        void passiveRequest_unknownState_returnsEmpty() {
             ServiceInstance unknown = new DefaultServiceInstance(
                     "77", "user-service", "10.0.0.77", 8080, false,
                     Map.of(METADATA_KEY_DEPLOYMENT_STATE, "draining"));
 
             List<ServiceInstance> result = filter.doFilter(List.of(unknown), STATE_PASSIVE);
 
-            assertThat(result).containsExactly(unknown);
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Active request, no active nodes → returns all instances (never black-hole production)")
+        void noActiveNode_activeRequest_returnsAll() {
+            ServiceInstance draining = new DefaultServiceInstance(
+                    "77", "user-service", "10.0.0.77", 8080, false,
+                    Map.of(METADATA_KEY_DEPLOYMENT_STATE, "draining"));
+
+            List<ServiceInstance> result = filter.doFilter(List.of(draining), STATE_ACTIVE);
+
+            assertThat(result).containsExactly(draining);
         }
 
         @Test

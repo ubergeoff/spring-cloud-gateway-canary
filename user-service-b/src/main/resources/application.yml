@@ -16,7 +16,7 @@ eureka:
     lease-expiration-duration-in-seconds: 15
     # This metadata key is read by MetadataAwareServiceInstanceFilter in the gateway
     metadata-map:
-      deployment-state: passive
+      deployment-state: active
 
 management:
   endpoints:
@@ -30,3 +30,8 @@ management:
 logging:
   level:
     com.example.userserviceb: DEBUG
+
+# Artificial delay to simulate real work — useful for load-balancer testing.
+# Set to 0 to disable.
+service:
+  response-delay-ms: 500

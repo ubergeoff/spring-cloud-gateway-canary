@@ -1,8 +1,8 @@
 package com.example.gateway.loadbalancer;
 
+import com.example.gateway.loadbalancer.strategy.InstanceSelectionStrategy;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.DefaultResponse;
-import org.springframework.cloud.client.loadbalancer.reactive.ReactiveLoadBalancer;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
@@ -14,7 +14,6 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * {@link GlobalFilter} that replaces the default load-balancer instance selection
@@ -53,11 +52,14 @@ public class MetadataAwareLoadBalancerFilter implements GlobalFilter, Ordered {
 
     private final LoadBalancerClientFactory clientFactory;
     private final MetadataAwareServiceInstanceFilter metadataFilter;
+    private final InstanceSelectionStrategy selectionStrategy;
 
     public MetadataAwareLoadBalancerFilter(LoadBalancerClientFactory clientFactory,
-                                           MetadataAwareServiceInstanceFilter metadataFilter) {
-        this.clientFactory  = clientFactory;
-        this.metadataFilter = metadataFilter;
+                                           MetadataAwareServiceInstanceFilter metadataFilter,
+                                           InstanceSelectionStrategy selectionStrategy) {
+        this.clientFactory     = clientFactory;
+        this.metadataFilter    = metadataFilter;
+        this.selectionStrategy = selectionStrategy;
     }
 
     @Override
@@ -91,13 +93,11 @@ public class MetadataAwareLoadBalancerFilter implements GlobalFilter, Ordered {
                 .next()                          // take the first (and only) emission
                 .flatMap(instances -> {
                     if (instances.isEmpty()) {
-                        // No suitable instance — let the default filter handle the error.
-                        return chain.filter(exchange);
+                        exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
+                        return exchange.getResponse().setComplete();
                     }
 
-                    // Uniform random selection across the filtered instance pool.
-                    int idx = ThreadLocalRandom.current().nextInt(instances.size());
-                    ServiceInstance chosen = instances.get(idx);
+                    ServiceInstance chosen = selectionStrategy.select(instances, exchange);
 
                     // Reconstruct the URI with the real host:port.
                     // Note: LoadBalancerUriTools.reconstructURI preserves the original scheme

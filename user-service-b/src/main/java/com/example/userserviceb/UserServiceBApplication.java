@@ -1,5 +1,6 @@
 package com.example.userserviceb;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +21,12 @@ public class UserServiceBApplication {
 @RequestMapping("/users")
 class UserController {
 
+    @Value("${service.response-delay-ms:0}")
+    private long responseDelayMs;
+
     @GetMapping("/{id}")
-    Map<String, Object> getUser(@PathVariable String id) {
+    Map<String, Object> getUser(@PathVariable String id) throws InterruptedException {
+        if (responseDelayMs > 0) Thread.sleep(responseDelayMs);
         return Map.of(
             "instance",         "user-service-b",
             "deployment-state", "passive",
@@ -32,7 +37,8 @@ class UserController {
     }
 
     @GetMapping
-    Map<String, Object> listUsers() {
+    Map<String, Object> listUsers() throws InterruptedException {
+        if (responseDelayMs > 0) Thread.sleep(responseDelayMs);
         return Map.of(
             "instance",         "user-service-b",
             "deployment-state", "passive",

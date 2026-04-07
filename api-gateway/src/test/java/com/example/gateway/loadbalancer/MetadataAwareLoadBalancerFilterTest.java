@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.example.gateway.loadbalancer.strategy.RandomInstanceSelectionStrategy;
+
 import static com.example.gateway.loadbalancer.MetadataAwareServiceInstanceFilter.METADATA_KEY_DEPLOYMENT_STATE;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,7 +59,7 @@ class MetadataAwareLoadBalancerFilterTest {
 
     /** Builds a filter whose resolveSupplier() returns the given supplier (or null). */
     private static MetadataAwareLoadBalancerFilter filterReturning(ServiceInstanceListSupplier supplier) {
-        return new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter()) {
+        return new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter(), new RandomInstanceSelectionStrategy()) {
             @Override
             ServiceInstanceListSupplier resolveSupplier(String serviceId) {
                 return supplier;
@@ -105,7 +107,7 @@ class MetadataAwareLoadBalancerFilterTest {
             AtomicBoolean resolverCalled = new AtomicBoolean(false);
 
             MetadataAwareLoadBalancerFilter filter =
-                    new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter()) {
+                    new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter(), new RandomInstanceSelectionStrategy()) {
                         @Override ServiceInstanceListSupplier resolveSupplier(String id) {
                             resolverCalled.set(true);
                             return null;
@@ -131,7 +133,7 @@ class MetadataAwareLoadBalancerFilterTest {
             AtomicBoolean resolverCalled = new AtomicBoolean(false);
 
             MetadataAwareLoadBalancerFilter filter =
-                    new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter()) {
+                    new MetadataAwareLoadBalancerFilter(null, new MetadataAwareServiceInstanceFilter(), new RandomInstanceSelectionStrategy()) {
                         @Override ServiceInstanceListSupplier resolveSupplier(String id) {
                             resolverCalled.set(true);
                             return null;
@@ -155,20 +157,43 @@ class MetadataAwareLoadBalancerFilterTest {
             assertThat(chain.called).isTrue();
         }
 
+    }
+
+    // -------------------------------------------------------------------------
+    // Fail-fast — 503 when no matching instance
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Fail-fast — 503 when no matching instance found")
+    class FailFast {
+
         @Test
-        @DisplayName("Empty instance list → passes through without rewriting URI")
-        void emptyInstances_passesThrough() {
+        @DisplayName("x-sgb-zone: passive with no passive instances → 503, chain not called")
+        void passiveRequest_noPassiveInstances_returns503() {
+            MockServerWebExchange exchange = lbExchange("x-sgb-zone", "passive");
+            RecordingChain chain = new RecordingChain();
+            MetadataAwareLoadBalancerFilter filter = filterReturning(supplierOf(List.of(
+                    instance("a", "active", "10.0.0.1"))));
+
+            StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
+
+            assertThat(chain.called).isFalse();
+            assertThat(exchange.getResponse().getStatusCode())
+                    .isEqualTo(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        @Test
+        @DisplayName("Empty instance list (Eureka down) → 503, chain not called")
+        void noInstances_returns503() {
             MockServerWebExchange exchange = lbExchange();
             RecordingChain chain = new RecordingChain();
             MetadataAwareLoadBalancerFilter filter = filterReturning(supplierOf(List.of()));
 
             StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
 
-            assertThat(chain.called).isTrue();
-            URI urlAttr = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
-            assertThat(urlAttr).isEqualTo(URI.create("lb://user-service"));
-            assertThat(exchange.getAttributes())
-                    .doesNotContainKey(ServerWebExchangeUtils.GATEWAY_LOADBALANCER_RESPONSE_ATTR);
+            assertThat(chain.called).isFalse();
+            assertThat(exchange.getResponse().getStatusCode())
+                    .isEqualTo(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
 

@@ -18,8 +18,9 @@ import java.util.stream.Collectors;
  *       only instances whose {@code deployment-state} metadata equals {@code passive}
  *       are eligible.</li>
  *   <li>All other requests are routed exclusively to {@code active} instances.</li>
- *   <li>If the filtered set is empty (e.g. no passive node is up) the filter falls
- *       back to the full unfiltered list so traffic is never black-holed.</li>
+ *   <li>If no passive instance is available the filter returns an empty list —
+ *       the caller is responsible for responding with {@code 503 Service Unavailable}.
+ *       Active traffic falls back to the full list only when no active node exists.</li>
  * </ul>
  *
  * <p>This class is intentionally stateless and has no Spring dependencies so it
@@ -82,14 +83,10 @@ public class MetadataAwareServiceInstanceFilter {
                 .filter(instance -> requestedZone.equalsIgnoreCase(deploymentState(instance)))
                 .collect(Collectors.toList());
 
-        if (filtered.isEmpty()) {
-            // Safety fallback: never black-hole traffic.
-            // If no passive node is registered, let active nodes handle it;
-            // if somehow no active node exists, return everything.
-            List<ServiceInstance> fallback = instances.stream()
-                    .filter(i -> STATE_ACTIVE.equalsIgnoreCase(deploymentState(i)))
-                    .collect(Collectors.toList());
-            return fallback.isEmpty() ? instances : fallback;
+        // Passive requests fail fast — no fallback to active nodes.
+        // Active requests fall back to the full list only when no active node exists.
+        if (filtered.isEmpty() && STATE_ACTIVE.equals(requestedZone)) {
+            return instances;
         }
 
         return filtered;

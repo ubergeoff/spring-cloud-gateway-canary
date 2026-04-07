@@ -1,5 +1,9 @@
 package com.example.gateway.loadbalancer;
 
+import com.example.gateway.loadbalancer.strategy.InstanceSelectionStrategy;
+import com.example.gateway.loadbalancer.strategy.LeastConnectionsInstanceSelectionStrategy;
+import com.example.gateway.loadbalancer.strategy.RandomInstanceSelectionStrategy;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
  * retain full control over when it activates.
  */
 @Configuration
+@EnableConfigurationProperties(LoadBalancerProperties.class)
 public class MetadataAwareLoadBalancerConfiguration {
 
     /**
@@ -27,6 +32,18 @@ public class MetadataAwareLoadBalancerConfiguration {
     }
 
     /**
+     * Selects the {@link InstanceSelectionStrategy} implementation based on
+     * {@code gateway.load-balancer.strategy} in {@code application.yml}.
+     */
+    @Bean
+    public InstanceSelectionStrategy instanceSelectionStrategy(LoadBalancerProperties properties) {
+        return switch (properties.getStrategy()) {
+            case LEAST_CONNECTIONS -> new LeastConnectionsInstanceSelectionStrategy();
+            default -> new RandomInstanceSelectionStrategy();
+        };
+    }
+
+    /**
      * The {@link org.springframework.cloud.gateway.filter.GlobalFilter} that
      * intercepts {@code lb://} URIs and delegates instance selection to the
      * metadata-aware supplier.
@@ -34,7 +51,8 @@ public class MetadataAwareLoadBalancerConfiguration {
     @Bean
     public MetadataAwareLoadBalancerFilter metadataAwareLoadBalancerFilter(
             LoadBalancerClientFactory clientFactory,
-            MetadataAwareServiceInstanceFilter filter) {
-        return new MetadataAwareLoadBalancerFilter(clientFactory, filter);
+            MetadataAwareServiceInstanceFilter filter,
+            InstanceSelectionStrategy selectionStrategy) {
+        return new MetadataAwareLoadBalancerFilter(clientFactory, filter, selectionStrategy);
     }
 }

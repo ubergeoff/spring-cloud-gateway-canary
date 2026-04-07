@@ -1,6 +1,14 @@
 server:
   port: 8080
 
+# -----------------------------------------------------------------------
+# Custom load balancer settings
+# strategy: random | least-connections
+# -----------------------------------------------------------------------
+gateway:
+  load-balancer:
+    strategy: least-connections
+
 spring:
   application:
     name: api-gateway
