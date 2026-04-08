@@ -16,7 +16,7 @@ eureka:
     lease-expiration-duration-in-seconds: 15
     # This metadata key is read by MetadataAwareServiceInstanceFilter in the gateway
     metadata-map:
-      deployment-state: active
+      deployment-state: passive
 
 management:
   endpoints:

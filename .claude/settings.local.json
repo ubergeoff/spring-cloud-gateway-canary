@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh --version)"
+      "Bash(gh --version)",
+      "Bash($MVN test:*)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2025.2.6.1/plugins/maven/lib/maven3/bin/mvn' test)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(bash:*)"
     ]
   }
 }
