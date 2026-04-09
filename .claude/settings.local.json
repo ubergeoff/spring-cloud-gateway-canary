@@ -8,7 +8,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(curl:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c ':*)"
     ]
   }
 }

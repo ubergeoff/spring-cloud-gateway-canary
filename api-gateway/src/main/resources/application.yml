@@ -71,7 +71,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,env
+        include: health,info,gateway,env,prometheus
   endpoint:
     health:
       show-details: always
