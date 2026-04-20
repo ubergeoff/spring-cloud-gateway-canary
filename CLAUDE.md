@@ -78,6 +78,16 @@ Inbound request
 | `MetadataAwareLoadBalancerFilter` | `GlobalFilter` (order 10149); wires everything together per-request, rewrites exchange URI. |
 | `MetadataAwareLoadBalancerConfiguration` | `@Configuration`; registers the beans above. |
 
+### Load-balancer strategies
+
+Configured via `gateway.load-balancer.strategy` in `api-gateway/src/main/resources/application.yml`:
+
+| Value | Class | Notes |
+|-------|-------|-------|
+| `random` | `RandomInstanceSelectionStrategy` | Stateless uniform random — good for testing |
+| `least-connections` | `LeastConnectionsInstanceSelectionStrategy` | Tracks in-flight requests; ties broken by list order (always picks first instance on sequential requests) |
+| `round-robin` | `RoundRobinInstanceSelectionStrategy` | Strict alternation via `AtomicInteger` counter |
+
 ### Route configuration (`application.yml`)
 
 Two routes for `lb://user-service`:
@@ -97,3 +107,12 @@ curl -X PUT "http://eureka-server:8761/eureka/apps/USER-SERVICE/{instanceId}/met
 ```
 
 The gateway fetches the Eureka registry every 5 seconds (`registry-fetch-interval-seconds: 5`) so promotions propagate quickly.
+
+**Important:** Spring Cloud LoadBalancer's `CachingServiceInstanceListSupplier` caches `ServiceInstance` objects (including their metadata snapshots) for **35 seconds**. A Eureka metadata promotion updates the Eureka server immediately, but the gateway's LoadBalancer cache may serve stale `deployment-state` values for up to 35 seconds — causing the metadata filter to exclude the promoted instance.
+
+To make a promotion effective instantly, flush the cache after the Eureka `PUT`:
+
+```bash
+curl -X PUT "http://localhost:8761/eureka/apps/USER-SERVICE/{instanceId}/metadata?deployment-state=active"
+curl -X POST "http://localhost:8080/actuator/gateway/refresh"
+```

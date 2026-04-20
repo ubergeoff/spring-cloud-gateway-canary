@@ -3,6 +3,7 @@ package com.example.gateway.loadbalancer;
 import com.example.gateway.loadbalancer.strategy.InstanceSelectionStrategy;
 import com.example.gateway.loadbalancer.strategy.LeastConnectionsInstanceSelectionStrategy;
 import com.example.gateway.loadbalancer.strategy.RandomInstanceSelectionStrategy;
+import com.example.gateway.loadbalancer.strategy.RoundRobinInstanceSelectionStrategy;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +40,7 @@ public class MetadataAwareLoadBalancerConfiguration {
     public InstanceSelectionStrategy instanceSelectionStrategy(LoadBalancerProperties properties) {
         return switch (properties.getStrategy()) {
             case LEAST_CONNECTIONS -> new LeastConnectionsInstanceSelectionStrategy();
+            case ROUND_ROBIN -> new RoundRobinInstanceSelectionStrategy();
             default -> new RandomInstanceSelectionStrategy();
         };
     }

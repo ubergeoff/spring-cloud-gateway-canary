@@ -10,7 +10,9 @@
       "Bash(curl:*)",
       "Bash(bash:*)",
       "Bash(python3 -m json.tool)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash($MVN package:*)",
+      "Bash(python -m json.tool)"
     ]
   }
 }

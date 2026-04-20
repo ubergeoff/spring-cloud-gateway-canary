@@ -18,7 +18,7 @@ public class LoadBalancerProperties {
 
     /**
      * Instance selection algorithm to use after metadata filtering.
-     * Supported values: {@code random}, {@code least-connections}.
+     * Supported values: {@code random}, {@code least-connections}, {@code round-robin}.
      * Defaults to {@code random}.
      */
     private Strategy strategy = Strategy.RANDOM;
@@ -33,6 +33,7 @@ public class LoadBalancerProperties {
 
     public enum Strategy {
         RANDOM,
-        LEAST_CONNECTIONS
+        LEAST_CONNECTIONS,
+        ROUND_ROBIN
     }
 }
