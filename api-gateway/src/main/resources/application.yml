@@ -7,7 +7,7 @@ server:
 # -----------------------------------------------------------------------
 gateway:
   load-balancer:
-    strategy: least-connections
+    strategy: round-robin
 
 spring:
   application:

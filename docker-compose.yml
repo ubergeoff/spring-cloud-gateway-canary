@@ -19,32 +19,70 @@ services:
       retries: 8
       start_period: 40s
 
+  # ── Database ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: usersdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # ── User services ─────────────────────────────────────────────────────────
+  # Both instances build from the same ./user-service image.
+  # DEPLOYMENT_STATE and INSTANCE_NAME differentiate them at runtime.
   user-service-a:
-    build: ./user-service-a
+    build: ./user-service
     container_name: user-service-a
     ports:
       - "8081:8081"
     environment:
-      # Point at the eureka-server container instead of localhost
+      SERVER_PORT: 8081
+      INSTANCE_NAME: user-service-a
+      DEPLOYMENT_STATE: active
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/usersdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
     networks:
       - backend
     depends_on:
       eureka-server:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   user-service-b:
-    build: ./user-service-b
+    build: ./user-service
     container_name: user-service-b
     ports:
       - "8082:8082"
     environment:
+      SERVER_PORT: 8082
+      INSTANCE_NAME: user-service-b
+      DEPLOYMENT_STATE: passive
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/usersdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
     networks:
       - backend
     depends_on:
       eureka-server:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   # ── API Gateway ───────────────────────────────────────────────────────────
@@ -94,3 +132,4 @@ networks:
 
 volumes:
   grafana-data:
+  postgres-data:
