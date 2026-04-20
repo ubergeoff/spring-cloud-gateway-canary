@@ -1,4 +1,4 @@
-package com.example.userservicea;
+package com.example.userservice;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 @SpringBootApplication
-public class UserServiceAApplication {
+public class UserServiceApplication {
     public static void main(String[] args) {
-        SpringApplication.run(UserServiceAApplication.class, args);
+        SpringApplication.run(UserServiceApplication.class, args);
     }
 
     @Bean
@@ -64,6 +64,15 @@ interface UserRepository extends JpaRepository<User, Long> {}
 @RequestMapping("/users")
 class UserController {
 
+    @Value("${service.instance-name}")
+    private String instanceName;
+
+    @Value("${service.deployment-state}")
+    private String deploymentState;
+
+    @Value("${server.port}")
+    private int port;
+
     @Value("${service.response-delay-ms:0}")
     private long responseDelayMs;
 
@@ -76,27 +85,23 @@ class UserController {
     @GetMapping("/{id}")
     Map<String, Object> getUser(@PathVariable String id) throws InterruptedException {
         if (responseDelayMs > 0) Thread.sleep(responseDelayMs);
-        List<User> users = userRepository.findAll();
         return Map.of(
-            "instance",         "user-service-a",
-            "deployment-state", "active",
-            "port",             8081,
+            "instance",         instanceName,
+            "deployment-state", deploymentState,
+            "port",             port,
             "userId",           id,
-            "message",          "Hello from the ACTIVE (production) instance",
-            "dbUsers",          users
+            "dbUsers",          userRepository.findAll()
         );
     }
 
     @GetMapping
     Map<String, Object> listUsers() throws InterruptedException {
         if (responseDelayMs > 0) Thread.sleep(responseDelayMs);
-        List<User> users = userRepository.findAll();
         return Map.of(
-            "instance",         "user-service-a",
-            "deployment-state", "active",
-            "port",             8081,
-            "message",          "Listing users from the ACTIVE (production) instance",
-            "dbUsers",          users
+            "instance",         instanceName,
+            "deployment-state", deploymentState,
+            "port",             port,
+            "dbUsers",          userRepository.findAll()
         );
     }
 }

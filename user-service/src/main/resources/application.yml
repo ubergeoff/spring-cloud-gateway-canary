@@ -1,9 +1,8 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT:8081}
 
 spring:
   application:
-    # Must match the lb://user-service URI in the gateway routes
     name: user-service
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/usersdb}
@@ -22,9 +21,8 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
-    # This metadata key is read by MetadataAwareServiceInstanceFilter in the gateway
     metadata-map:
-      deployment-state: passive
+      deployment-state: ${DEPLOYMENT_STATE:active}
 
 management:
   endpoints:
@@ -37,9 +35,9 @@ management:
 
 logging:
   level:
-    com.example.userserviceb: DEBUG
+    com.example.userservice: DEBUG
 
-# Artificial delay to simulate real work — useful for load-balancer testing.
-# Set to 0 to disable.
 service:
-  response-delay-ms: 500
+  instance-name: ${INSTANCE_NAME:user-service}
+  deployment-state: ${DEPLOYMENT_STATE:active}
+  response-delay-ms: ${RESPONSE_DELAY_MS:500}

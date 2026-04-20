@@ -14,10 +14,10 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>user-service-b</artifactId>
+    <artifactId>user-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>user-service-b</name>
-    <description>Stub user-service — passive (canary) instance</description>
+    <name>user-service</name>
+    <description>User microservice — deployment-state controlled via environment variable</description>
 
     <properties>
         <java.version>21</java.version>
